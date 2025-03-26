@@ -75,7 +75,7 @@ const Login = () => {
 
         <Typography variant="body2" sx={{ mt: 2 }}>
           Don't have an account?{" "}
-          <Link href="/signup" underline="hover">
+          <Link href="/signup" underline="default" color="black">
             Sign Up
           </Link>
         </Typography>
