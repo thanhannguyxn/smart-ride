@@ -1,25 +1,42 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Navbar from "./NavBar";
+import Footer from "./Footer";
+import { AuthProvider, useAuth } from "./AuthContext";
 
-function App() {
+// Import pages
+import Home from "./pages/Home";  
+import Ride from "./pages/RideDashboard";
+import Drive from "./pages/DriveDashboard";
+import Manager from "./pages/ManagerDashboard";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
+
+const ProtectedRoute = ({ children, role }) => {
+  const { auth } = useAuth();
+  return auth.isAuthenticated && auth.role === role ? children : <Navigate to="/login" />;
+};
+
+const App = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <AuthProvider>
+      <Router>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/ride" element={<ProtectedRoute role="user"><Ride /></ProtectedRoute>} />
+          <Route path="/drive" element={<ProtectedRoute role="driver"><Drive /></ProtectedRoute>} />
+          <Route path="/manager" element={<ProtectedRoute role="manager"><Manager /></ProtectedRoute>} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+        </Routes>
+      </Router>
+      <Footer />
+    </AuthProvider>
   );
-}
+};
 
 export default App;
+
+
+
