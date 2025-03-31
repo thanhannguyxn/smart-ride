@@ -20,7 +20,7 @@ const Footer = () => {
             <Box sx={{ display: "flex", flexDirection: "column", mt: 1 }}>
               <Link href="/ride" color="inherit" underline="hover">Book a Ride</Link>
               <Link href="/drive" color="inherit" underline="hover">Become a Driver</Link>
-              <Link href="/support" color="inherit" underline="hover">Management Department</Link>
+              <Link href="/manager" color="inherit" underline="hover">Management Department</Link>
             </Box>
           </Grid>
 

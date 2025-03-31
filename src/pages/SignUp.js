@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { TextField, Button, Typography, Box, Container, Link, Grid } from "@mui/material";
+import { TextField, Button, Typography, Box, Container, Link, Grid, FormControl, FormLabel, RadioGroup, FormControlLabel, Radio } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 const SignUp = () => {
@@ -11,6 +11,7 @@ const SignUp = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    role: "user",
   });
 
   const [errors, setErrors] = useState({});
@@ -44,20 +45,12 @@ const SignUp = () => {
 
   return (
     <Container maxWidth="sm"> 
-    <Box
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      justifyContent="center"
-      height="100vh"
-      width="100%"
-    >
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
-        Create an Account
-      </Typography>
-  
-      <Box width="100%">
-        <Grid container spacing={13.2}>
+      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100vh">
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
+          Create an Account
+        </Typography>
+
+        <Grid container spacing={13.25} sx={{ width: "100%" }}>
           <Grid item xs={6}>
             <TextField
               label="First Name"
@@ -83,72 +76,85 @@ const SignUp = () => {
             />
           </Grid>
         </Grid>
+
+        <TextField
+          label="Phone Number"
+          name="phone"
+          variant="outlined"
+          fullWidth
+          margin="normal"
+          value={form.phone}
+          onChange={handleChange}
+          error={!!errors.phone}
+          helperText={errors.phone}
+        />
+        <TextField
+          label="Email"
+          name="email"
+          variant="outlined"
+          fullWidth
+          margin="normal"
+          value={form.email}
+          onChange={handleChange}
+          error={!!errors.email}
+          helperText={errors.email}
+        />
+        <TextField
+          label="Password"
+          name="password"
+          type="password"
+          variant="outlined"
+          fullWidth
+          margin="normal"
+          value={form.password}
+          onChange={handleChange}
+          error={!!errors.password}
+          helperText={errors.password}
+        />
+        <TextField
+          label="Confirm Password"
+          name="confirmPassword"
+          type="password"
+          variant="outlined"
+          fullWidth
+          margin="normal"
+          value={form.confirmPassword}
+          onChange={handleChange}
+          error={!!errors.confirmPassword}
+          helperText={errors.confirmPassword}
+        />
+
+        {/* Role Selection */}
+        <FormControl component="fieldset" sx={{ mt: 2, width: "100%" }}>
+          <FormLabel component="legend">Sign Up As</FormLabel>
+          <RadioGroup
+            row
+            name="role"
+            value={form.role}
+            onChange={handleChange}
+          >
+            <FormControlLabel value="user" control={<Radio />} label="User" />
+            <FormControlLabel value="driver" control={<Radio />} label="Driver" />
+          </RadioGroup>
+        </FormControl>
+  
+        <Button
+          variant="contained"
+          fullWidth
+          sx={{ mt: 3, py: 1.5, fontSize: "1rem", fontWeight: "bold", backgroundColor: "black" }}
+          onClick={handleSignUp}
+        >
+          Sign Up
+        </Button>
+  
+        <Typography variant="body2" sx={{ mt: 2 }}>
+          Already have an account?{" "}
+          <Link href="/login" underline="hover" sx={{ color: "black", fontWeight: "bold" }}>
+            Login
+          </Link>
+        </Typography>
       </Box>
-  
-      <TextField
-        label="Phone Number"
-        name="phone"
-        variant="outlined"
-        fullWidth
-        margin="normal"
-        value={form.phone}
-        onChange={handleChange}
-        error={!!errors.phone}
-        helperText={errors.phone}
-      />
-      <TextField
-        label="Email"
-        name="email"
-        variant="outlined"
-        fullWidth
-        margin="normal"
-        value={form.email}
-        onChange={handleChange}
-        error={!!errors.email}
-        helperText={errors.email}
-      />
-      <TextField
-        label="Password"
-        name="password"
-        type="password"
-        variant="outlined"
-        fullWidth
-        margin="normal"
-        value={form.password}
-        onChange={handleChange}
-        error={!!errors.password}
-        helperText={errors.password}
-      />
-      <TextField
-        label="Confirm Password"
-        name="confirmPassword"
-        type="password"
-        variant="outlined"
-        fullWidth
-        margin="normal"
-        value={form.confirmPassword}
-        onChange={handleChange}
-        error={!!errors.confirmPassword}
-        helperText={errors.confirmPassword}
-      />
-  
-      <Button
-        variant="contained"
-        fullWidth
-        sx={{ mt: 2, py: 1.5, fontSize: "1rem", fontWeight: "bold", backgroundColor: "black" }}
-        onClick={handleSignUp}
-      >
-        Sign Up
-      </Button>
-  
-      <Typography variant="body2" sx={{ mt: 2 }}>
-        Already have an account?{" "}
-        <Link href="/login" underline="default" color="black">
-          Login
-        </Link>
-      </Typography>
-    </Box>
-  </Container>
+    </Container>
   );
 };
 

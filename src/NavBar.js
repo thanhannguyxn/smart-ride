@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
@@ -10,6 +10,8 @@ const Navbar = () => {
 
   const isRidePage = location.pathname === "/ride";
   const isDrivePage = location.pathname === "/drive";
+  const isTripHistoryPage = location.pathname === "/trip-history";
+  const isDriverTripHistoryPage = location.pathname === "/driver-trip-history";
 
   return (
     <AppBar position="static" sx={{ bgcolor: "black", color: "white", px: 3 }}>
@@ -24,8 +26,8 @@ const Navbar = () => {
             SmartRide
           </Typography>
 
-          {/* Only show Ride & Ride History when on the ride page */}
-          {isRidePage ? (
+          {/* Conditional Navigation Buttons */}
+          {isRidePage || isTripHistoryPage ? (
             <>
               <Button onClick={() => navigate("/ride")} sx={navButtonStyle}>
                 Book a Ride
@@ -34,12 +36,12 @@ const Navbar = () => {
                 Trip History
               </Button>
             </>
-          ) : isDrivePage ? (
+          ) : isDrivePage || isDriverTripHistoryPage ? (
             <>
               <Button onClick={() => navigate("/drive")} sx={navButtonStyle}>
                 Ride Request
               </Button>
-              <Button onClick={() => navigate("/trip-history")} sx={navButtonStyle}>
+              <Button onClick={() => navigate("/driver-trip-history")} sx={navButtonStyle}>
                 Trip History
               </Button>
             </>
