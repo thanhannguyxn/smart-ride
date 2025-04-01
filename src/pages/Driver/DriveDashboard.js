@@ -1,15 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, Typography, Button, Grid, Avatar, Box } from "@mui/material";
-import axios from "axios";
-
 const DriveDashboard = () => {
   const [rideRequests, setRideRequests] = useState([]);
-
-  useEffect(() => {
-    axios.get("/api/ride-requests")
-      .then(response => setRideRequests(response.data))
-      .catch(error => console.error("Error fetching ride requests:", error));
-  }, []);
 
   const handleAccept = (requestId) => {
     console.log("Accepted request:", requestId);
