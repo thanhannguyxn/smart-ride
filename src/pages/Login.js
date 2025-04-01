@@ -22,9 +22,9 @@ const Login = () => {
 
   const handleLogin = () => {
     if (validate()) {
-      const fakeRole = "driver"; 
+      const fakeRole = "user"; 
       login(fakeRole);
-      navigate(`/drive`); 
+      navigate(`/ride`); 
     }
   };
 
