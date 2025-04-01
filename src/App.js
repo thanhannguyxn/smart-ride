@@ -6,11 +6,11 @@ import { AuthProvider, useAuth } from "./AuthContext";
 
 // Import pages
 import Home from "./pages/Home";  
-import Ride from "./pages/RideDashboard";
-import Drive from "./pages/DriveDashboard";
-import Manager from "./pages/ManagerDashboard";
-import UserTripHistory from "./pages/UserTripHistory";
-import DriverTripHistory from "./pages/DriverTripHistory";
+import Ride from "./pages/User/RideDashboard";
+import Drive from "./pages/Driver/DriveDashboard";
+import Manager from "./pages/Manager/ManagerDashboard";
+import UserTripHistory from "./pages/User/UserTripHistory";
+import DriverTripHistory from "./pages/Driver/DriverTripHistory";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 
