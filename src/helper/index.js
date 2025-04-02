@@ -1,88 +1,93 @@
-function haversineDistance(loc1, loc2) {
-  // Convert decimal degrees to radians
-  const lat1 = (Math.PI / 180) * loc1.latitude;
-  const lon1 = (Math.PI / 180) * loc1.longitude;
-  const lat2 = (Math.PI / 180) * loc2.latitude;
-  const lon2 = (Math.PI / 180) * loc2.longitude;
+import { fetchRoute } from "../service";
 
-  // Haversine formula
+export function haversineDistance(start_lat, start_long, end_lat, end_long) {
+  const lat1 = (Math.PI / 180) * start_lat;
+  const lon1 = (Math.PI / 180) * start_long;
+  const lat2 = (Math.PI / 180) * end_lat;
+  const lon2 = (Math.PI / 180) * end_long;
+
   const dlat = lat2 - lat1;
   const dlon = lon2 - lon1;
   const a = Math.sin(dlat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dlon / 2) ** 2;
   const c = 2 * Math.asin(Math.sqrt(a));
 
-  // Radius of Earth in kilometers
   const r = 6371;
-  return c * r; // Distance in kilometers
+  return c * r;
 }
 
-// Find nearby drivers
-function findNearbyDrivers(pickupLocation, drivers, maxDistanceKm = 5.0) {
-  const nearbyDrivers = [];
+export const calculateFare = (distance) => {
+  const baseFare = 2;
+  const perKmRate = 1;
+  return baseFare + distance * perKmRate;
+};
 
-  drivers.forEach((driver) => {
-    if (!driver.isAvailable) return;
-
-    const distance = haversineDistance(pickupLocation, driver.location);
-    if (distance <= maxDistanceKm) {
-      nearbyDrivers.push({ driver, distance });
-    }
-  });
-
-  // Sort by distance
-  nearbyDrivers.sort((a, b) => a.distance - b.distance);
-  return nearbyDrivers;
-}
-
-// Match ride request to the nearest driver
-function matchRideRequest(rideRequest, drivers, maxDistanceKm = 5.0) {
-  const nearbyDrivers = findNearbyDrivers(rideRequest.pickup, drivers, maxDistanceKm);
-
-  if (nearbyDrivers.length === 0) {
-    return null; // No drivers found within the distance
+export const handleSeePrices = async (
+  pickupLat,
+  pickupLon,
+  dropoffLat,
+  dropoffLon,
+  setRouteDistance,
+  setFare,
+  mapInstance,
+  datasourceRef
+) => {
+  if (!pickupLat || !pickupLon || !dropoffLat || !dropoffLon) {
+    alert("Please enter valid pickup and dropoff locations.");
+    return;
   }
 
-  // Return the closest driver
-  return nearbyDrivers[0].driver;
-}
+  const startPosition = [parseFloat(pickupLon), parseFloat(pickupLat)];
+  const endPosition = [parseFloat(dropoffLon), parseFloat(dropoffLat)];
 
-// Example usage
-// const [matchedDriver, setMatchedDriver] = useState(null);
+  const routeData = await fetchRoute(pickupLat, pickupLon, dropoffLat, dropoffLon);
+  if (!routeData) {
+    console.error("Failed to fetch route data");
+    return;
+  }
 
-//   const drivers = [
-//     { id: 1, location: { latitude: 40.7128, longitude: -74.0060 }, isAvailable: true },
-//     { id: 2, location: { latitude: 40.7306, longitude: -73.9352 }, isAvailable: true },
-//     { id: 3, location: { latitude: 40.7851, longitude: -73.9683 }, isAvailable: false },
-//   ];
+  const route = routeData.routes[0];
+  const distance = route.summary.lengthInMeters / 1000;
+  setRouteDistance(distance);
+  setFare(calculateFare(distance));
 
-//   const rideRequest = { pickup: { latitude: 40.7306, longitude: -73.9352 } };
+  const routeCoordinates = route.legs.flatMap((leg) =>
+    leg.points.map((point) => [point.longitude, point.latitude])
+  );
 
-//   const handleMatchRequest = () => {
-//     const driver = matchRideRequest(rideRequest, drivers);
-//     setMatchedDriver(driver);
-//   };
+  if (mapInstance.current && datasourceRef.current) {
+    mapInstance.current.setCamera({
+      bounds: window.atlas.data.BoundingBox.fromPositions([startPosition, endPosition]),
+      padding: 50,
+    });
 
-const getUserLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setPickupLat(latitude.toFixed(6));
-          setPickupLon(longitude.toFixed(6));
-          if (mapInstance.current) {
-            mapInstance.current.setCamera({
-              center: [longitude, latitude],
-              zoom: 12
-            });
-          }
-        },
-        (error) => {
-          console.error("Error getting location:", error.message);
-          alert("Unable to get your location. Please check your browser permissions.");
-        },
-        { enableHighAccuracy: true }
-      );
-    } else {
-      alert("Geolocation is not supported by this browser.");
-    }
-  };
+    const routeLine = new window.atlas.data.LineString(routeCoordinates);
+    datasourceRef.current.clear();
+    datasourceRef.current.add(new window.atlas.data.Feature(routeLine));
+  }
+};
+
+
+export const getUserLocation = (setPickupLat, setPickupLon, mapInstance) => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setPickupLat(latitude.toFixed(6));
+        setPickupLon(longitude.toFixed(6));
+        if (mapInstance.current) {
+          mapInstance.current.setCamera({
+            center: [longitude, latitude],
+            zoom: 12
+          });
+        }
+      },
+      (error) => {
+        console.error("Error getting location:", error.message);
+        alert("Unable to get your location. Please check your browser permissions.");
+      },
+      { enableHighAccuracy: true }
+    );
+  } else {
+    alert("Geolocation is not supported by this browser.");
+  }
+};

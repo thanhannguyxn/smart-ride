@@ -1,4 +1,4 @@
-const API_URL = "https://localhost:7156/api"; // Adjust as needed
+const API_URL = "https://localhost:7122/api"; // Adjust as needed
  
 // Function to fetch Azure Maps API key
 export async function fetchMapKey() {
@@ -26,5 +26,15 @@ export async function fetchRoute(startLat, startLon, endLat, endLong) {
     } catch (error) {
         console.error("Error fetching route:", error);
         return null;
+    }
+}
+
+export async function createRideRequest(start_lat, start_long, end_lat, end_long) {
+    console.log("Bú");
+    return {
+        start_lat: start_lat,
+        start_long: start_long,
+        end_lat: end_lat,
+        end_long: end_long
     }
 }
