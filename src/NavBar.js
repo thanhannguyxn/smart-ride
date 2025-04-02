@@ -60,16 +60,30 @@ const Navbar = () => {
         {/* Right Section: Authentication Buttons */}
         <Box sx={{ display: "flex", gap: 3 }}>
           {auth.isAuthenticated ? (
-            <Button
-              onClick={() => {
-                logout();
-                navigate("/");
-              }}
-              variant="outlined"
-              sx={logoutButtonStyle}
-            >
-              Logout
-            </Button>
+            <>
+              {/* Profile Button */}
+              {auth.role === "driver" ? (
+                <Button onClick={() => navigate("/driver-profile")} sx={profileButtonStyle}>
+                  Profile
+                </Button>
+              ) : (
+                <Button onClick={() => navigate("/user-profile")} sx={profileButtonStyle}>
+                  Profile
+                </Button>
+              )}
+
+              {/* Logout Button */}
+              <Button
+                onClick={() => {
+                  logout();
+                  navigate("/");
+                }}
+                variant="outlined"
+                sx={logoutButtonStyle}
+              >
+                Logout
+              </Button>
+            </>
           ) : (
             <>
               <Button onClick={() => navigate("/login")} variant="outlined" sx={authButtonStyle}>
@@ -103,6 +117,15 @@ const logoutButtonStyle = {
   "&:hover": { bgcolor: "white", color: "black" },
 };
 
+const profileButtonStyle = {
+  borderColor: "white",
+  color: "white",
+  borderRadius: "50px",
+  px: 3,
+  textTransform: "none",
+  "&:hover": { bgcolor: "rgba(255, 255, 255, 0.2)" },
+};
+
 const authButtonStyle = {
   borderColor: "white",
   color: "white",
@@ -122,6 +145,7 @@ const signUpButtonStyle = {
 };
 
 export default Navbar;
+
 
 
 

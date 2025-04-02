@@ -3,20 +3,20 @@ import React, { createContext, useContext, useState } from "react";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  // Giả lập dữ liệu đăng nhập (ban đầu chưa đăng nhập)
   const [auth, setAuth] = useState({
     isAuthenticated: false,
     role: null, // null | "user" | "driver" | "manager"
+    user_id: null, // Store the user_id
   });
 
-  // Hàm login: cập nhật trạng thái đăng nhập & role
-  const login = (role) => {
-    setAuth({ isAuthenticated: true, role });
+  // Login function to set user data
+  const login = (role, user_id) => {
+    setAuth({ isAuthenticated: true, role, user_id });
   };
 
-  // Hàm logout
+  // Logout function
   const logout = () => {
-    setAuth({ isAuthenticated: false, role: null });
+    setAuth({ isAuthenticated: false, role: null, user_id: null });
   };
 
   return (
@@ -26,5 +26,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Hook tùy chỉnh để sử dụng AuthContext
+// Custom hook to use AuthContext
 export const useAuth = () => useContext(AuthContext);
+
