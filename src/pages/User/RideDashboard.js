@@ -1,21 +1,24 @@
-import { Box, Button, Input, Typography, MenuItem, Select, TextField } from "@mui/material";
-import { CalendarMonth, AccessTime, LocationOn } from "@mui/icons-material";
+import { Box, Button, Input, Typography } from "@mui/material";
+import { LocationOn } from "@mui/icons-material";
 import { useState, useEffect, useRef } from "react";
-import { fetchMapKey, fetchRoute } from "../../service";
- 
+import { fetchMapKey, createRideRequest } from "../../service";
+import { getUserLocation } from "../../helper";
+import { handleSeePrices } from "../../helper";
+
 export default function RideDashboard() {
-  const [selectedTime, setSelectedTime] = useState("Now");
-  const [selectedDate, setSelectedDate] = useState("Today");
   const [subscriptionKey, setSubscriptionKey] = useState(null);
   const [pickupLat, setPickupLat] = useState("");
   const [pickupLon, setPickupLon] = useState("");
   const [dropoffLat, setDropoffLat] = useState("");
   const [dropoffLon, setDropoffLon] = useState("");
- 
+  const [fare, setFare] = useState(null);
+  const [routeDistance, setRouteDistance] = useState(null);
+  const [isConfirm, setIsConfirm] = useState(false);
+
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const datasourceRef = useRef(null);
- 
+
   useEffect(() => {
     async function getKey() {
       const key = await fetchMapKey();
@@ -23,7 +26,18 @@ export default function RideDashboard() {
     }
     getKey();
   }, []);
- 
+
+  const handleConfirmRide = async () => {
+    try {
+      const response = await createRideRequest(pickupLat, pickupLon, dropoffLat, dropoffLon);
+      if (response) {
+        //setIsModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Failed to create ride request", error);
+    }
+  };
+
   useEffect(() => {
     if (subscriptionKey && mapRef.current && !mapInstance.current) {
       const script = document.createElement("script");
@@ -54,64 +68,7 @@ export default function RideDashboard() {
       document.body.appendChild(script);
     }
   }, [subscriptionKey]);
- 
-  const handleSeePrices = async () => {
-    if (!pickupLat || !pickupLon || !dropoffLat || !dropoffLon) {
-      alert("Please enter valid pickup and dropoff locations.");
-      return;
-    }
- 
-    const startPosition = [parseFloat(pickupLon), parseFloat(pickupLat)];
-    const endPosition = [parseFloat(dropoffLon), parseFloat(dropoffLat)];
- 
-    const routeData = await fetchRoute(pickupLat, pickupLon, dropoffLat, dropoffLon);
-    if (!routeData) {
-      console.error("Failed to fetch route data");
-      return;
-    }
- 
-    const route = routeData.routes[0];
-    const routeCoordinates = route.legs.flatMap((leg) =>
-      leg.points.map((point) => [point.longitude, point.latitude])
-    );
- 
-    if (mapInstance.current && datasourceRef.current) {
-      mapInstance.current.setCamera({
-        bounds: window.atlas.data.BoundingBox.fromPositions([startPosition, endPosition]),
-        padding: 50,
-      });
- 
-      const routeLine = new window.atlas.data.LineString(routeCoordinates);
-      datasourceRef.current.clear();
-      datasourceRef.current.add(new window.atlas.data.Feature(routeLine));
-    }
-  };
- 
-  const getUserLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setPickupLat(latitude.toFixed(6));
-          setPickupLon(longitude.toFixed(6));
-          if (mapInstance.current) {
-            mapInstance.current.setCamera({
-              center: [longitude, latitude],
-              zoom: 12
-            });
-          }
-        },
-        (error) => {
-          console.error("Error getting location:", error.message);
-          alert("Unable to get your location. Please check your browser permissions.");
-        },
-        { enableHighAccuracy: true }
-      );
-    } else {
-      alert("Geolocation is not supported by this browser.");
-    }
-  };
- 
+
   return (
     <Box display="flex" justifyContent="space-between" alignItems="center" height="80vh" bgcolor="#fff" p={5}>
       {/* Left Side - Ride Booking Form */}
@@ -119,7 +76,7 @@ export default function RideDashboard() {
         <Typography variant="h4" fontWeight="bold" gutterBottom>
           Go anywhere with SmartRide
         </Typography>
- 
+
         <Box display="flex" alignItems="center" bgcolor="#f3f3f3" borderRadius={2} p={1} mb={1}>
           <LocationOn color="action" sx={{ mr: 1 }} />
           <Input
@@ -138,14 +95,14 @@ export default function RideDashboard() {
           />
         </Box>
         <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              onClick={getUserLocation}
-              sx={{ ml: 1, minWidth: 'auto', whiteSpace: 'nowrap' }}
-            >
-              Use My Location
-            </Button>
+          variant="contained"
+          color="primary"
+          size="small"
+          onClick={() => getUserLocation(setPickupLat, setPickupLon, mapInstance)}
+          sx={{ ml: 1, minWidth: 'auto', whiteSpace: 'nowrap' }}
+        >
+          Use My Location
+        </Button>
         <Box display="flex" alignItems="center" bgcolor="#f3f3f3" borderRadius={2} p={1} mt={1} mb={2}>
           <LocationOn color="action" sx={{ mr: 1 }} />
           <Input
@@ -163,49 +120,38 @@ export default function RideDashboard() {
             onChange={(e) => setDropoffLon(e.target.value)}
           />
         </Box>
- 
-        <Box display="flex" gap={2} mb={2}>
-          <Box display="flex" alignItems="center" bgcolor="black" borderRadius={1} p={1} flex={1} justifyContent="center">
-            <CalendarMonth sx={{ color: "white", mr: 1 }} />
-            <TextField
-              type="date"
-              fullWidth
-              variant="outlined"
-              sx={{ input: { color: "white", textAlign: "center" }, border: "none" }}
-              InputLabelProps={{ shrink: true }}
-              value={selectedDate === "Today" ? new Date().toISOString().split("T")[0] : selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-            />
-          </Box>
-          <Box display="flex" alignItems="center" bgcolor="black" borderRadius={1} p={1} flex={1} justifyContent="center">
-            <AccessTime sx={{ color: "white", mr: 1 }} />
-            <Select
-              value={selectedTime}
-              onChange={(e) => setSelectedTime(e.target.value)}
-              fullWidth
-              displayEmpty
-              variant="outlined"
-              sx={{ color: "white", border: "none", textAlign: "center" }}
-            >
-              {["Now", "15 min", "30 min", "45 min", "60 min"].map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-            </Select>
-          </Box>
-        </Box>
- 
+
         <Button
+          onClick={() => {
+            handleSeePrices(
+              pickupLat,
+              pickupLon,
+              dropoffLat,
+              dropoffLon,
+              setRouteDistance,
+              setFare,
+              mapInstance,
+              datasourceRef
+            );
+            setIsConfirm(true);
+          }}
           variant="contained"
-          fullWidth
-          sx={{ backgroundColor: "black", color: "white", fontWeight: "bold", borderRadius: 1, textAlign: "center" }}
-          onClick={handleSeePrices}
         >
-          See Prices
+          See Information
         </Button>
+
+
+        {isConfirm && fare !== null && routeDistance !== null && (
+          <Box mt={2} p={2} bgcolor="#f3f3f3" borderRadius={2}>
+            <Typography variant="h6">Estimated Fare: ${fare.toFixed(2)}</Typography>
+            <Typography variant="body2">Distance: {routeDistance.toFixed(2)} km</Typography>
+            <Button onClick={handleConfirmRide} variant="contained" color="success" fullWidth sx={{ mt: 2 }}>
+              Confirm Ride
+            </Button>
+          </Box>
+        )}
       </Box>
- 
+
       {/* Right Side - Azure Map */}
       <Box flex={0.8} height={"60vh"} bgcolor="#e0e0e0" display="flex" justifyContent="center" alignItems="center" borderRadius={2}>
         <div ref={mapRef} style={{ width: "100%", height: "100%" }} />

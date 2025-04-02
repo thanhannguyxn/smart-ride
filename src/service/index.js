@@ -28,3 +28,13 @@ export async function fetchRoute(startLat, startLon, endLat, endLong) {
         return null;
     }
 }
+
+export async function createRideRequest(start_lat, start_long, end_lat, end_long) {
+    console.log("Bú");
+    return {
+        start_lat: start_lat,
+        start_long: start_long,
+        end_lat: end_lat,
+        end_long: end_long
+    }
+}
