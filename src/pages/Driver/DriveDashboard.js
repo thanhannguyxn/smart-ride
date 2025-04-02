@@ -1,8 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Card, CardContent, Typography, Button, Grid, Avatar, Box } from "@mui/material";
+import {
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Grid,
+  Avatar,
+  Box,
+} from "@mui/material";
 import { haversineDistance } from "../../helper";
 import { fetchMapKey } from "../../service";
-import signalRService from "../../service/signalR";
+import {listenForRideRequests } from "../../service/signalR";
 import { load3routes } from "../../service/route";
 
 const fakeRideRequests = [
@@ -20,7 +28,7 @@ const fakeRideRequests = [
     pickup_long: "105.681964",
     dropoff_lat: "21.025452",
     dropoff_long: "105.826726",
-    fare: 12.50,
+    fare: 12.5,
   },
   {
     request_id: 3,
@@ -28,13 +36,16 @@ const fakeRideRequests = [
     pickup_long: "105.907940",
     dropoff_lat: "21.045599",
     dropoff_long: "105.912635",
-    fare: 18.00,
+    fare: 18.0,
   },
 ];
 
 const DriveDashboard = () => {
   const [rideRequests, setRideRequests] = useState(fakeRideRequests);
-  const [currentLocation, setCurrentLocation] = useState({ lat: null, long: null });
+  const [currentLocation, setCurrentLocation] = useState({
+    lat: null,
+    long: null,
+  });
   const [activeRide, setActiveRide] = useState(null);
   const [subscriptionKey, setSubscriptionKey] = useState(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
@@ -56,20 +67,28 @@ const DriveDashboard = () => {
   }, []);
 
   useEffect(() => {
-    const handleRideRequest = (request) => {
-      console.log("New ride request received:", request);
+    listenForRideRequests((newRequest) => {
+      console.log("New ride request received", newRequest);
+      
       setRideRequests(prevRequests => {
-        const exists = prevRequests.some(r => r.request_id === request.request_id);
-        if (!exists) {
-          return [...prevRequests, request];
+        const isDuplicate = prevRequests.some(
+          request => request.request_id === newRequest.request_id
+        );
+        
+        if (isDuplicate) {
+          return prevRequests;
         }
-        return prevRequests;
+        
+        return [...prevRequests, {
+          request_id: newRequest.request_id,
+          pickup_lat: newRequest.pickupLat,
+          pickup_long: newRequest.pickupLong,
+          dropoff_lat: newRequest.dropoffLat,
+          dropoff_long: newRequest.dropoffLong,
+          fare: newRequest.fareAmount,
+        }];
       });
-    };
-    signalRService.on("RideRequest", handleRideRequest);
-    return () => {
-      signalRService.off("RideRequest", handleRideRequest);
-    };
+    });
   }, []);
 
   useEffect(() => {
@@ -96,7 +115,8 @@ const DriveDashboard = () => {
     }
 
     const script = document.createElement("script");
-    script.src = "https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.js";
+    script.src =
+      "https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.js";
     script.async = true;
     script.onload = initializeMap;
     script.onerror = () => console.error("Failed to load Azure Maps script");
@@ -112,10 +132,19 @@ const DriveDashboard = () => {
   };
 
   useEffect(() => {
-    if (subscriptionKey && isMapLoaded && mapRef.current && activeRide && !mapInstance.current) {
+    if (
+      subscriptionKey &&
+      isMapLoaded &&
+      mapRef.current &&
+      activeRide &&
+      !mapInstance.current
+    ) {
       try {
         mapInstance.current = new window.atlas.Map(mapRef.current, {
-          center: [parseFloat(activeRide.pickup_long), parseFloat(activeRide.pickup_lat)],
+          center: [
+            parseFloat(activeRide.pickup_long),
+            parseFloat(activeRide.pickup_lat),
+          ],
           zoom: 12,
           view: "Auto",
           authOptions: {
@@ -127,7 +156,16 @@ const DriveDashboard = () => {
         mapInstance.current.events.add("ready", () => {
           datasourceRef.current = new window.atlas.source.DataSource();
           mapInstance.current.sources.add(datasourceRef.current);
-          load3routes(currentLocation.lat, currentLocation.long, activeRide.pickup_lat, activeRide.pickup_long, activeRide.dropoff_lat, activeRide.dropoff_long, mapInstance, datasourceRef);
+          load3routes(
+            currentLocation.lat,
+            currentLocation.long,
+            activeRide.pickup_lat,
+            activeRide.pickup_long,
+            activeRide.dropoff_lat,
+            activeRide.dropoff_long,
+            mapInstance,
+            datasourceRef
+          );
         });
       } catch (error) {
         console.error("Error initializing map:", error);
@@ -138,7 +176,9 @@ const DriveDashboard = () => {
   const handleAccept = (request) => {
     if (!activeRide) {
       setActiveRide(request);
-      setRideRequests((prev) => prev.filter((r) => r.request_id !== request.request_id));
+      setRideRequests((prev) =>
+        prev.filter((r) => r.request_id !== request.request_id)
+      );
 
       mapInstance.current = null;
     }
@@ -154,7 +194,10 @@ const DriveDashboard = () => {
 
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold", textAlign: "center" }}>
+      <Typography
+        variant="h4"
+        sx={{ mb: 3, fontWeight: "bold", textAlign: "center" }}
+      >
         Ride Requests
       </Typography>
       <Grid container spacing={3}>
@@ -173,7 +216,9 @@ const DriveDashboard = () => {
                 <CardContent>
                   <Box display="flex" alignItems="center" gap={2}>
                     <Avatar>{request.request_id}</Avatar>
-                    <Typography variant="h6">Request {request.request_id}</Typography>
+                    <Typography variant="h6">
+                      Request {request.request_id}
+                    </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary">
                     Pickup Lat: {request.pickup_lat}
@@ -181,7 +226,10 @@ const DriveDashboard = () => {
                   <Typography variant="body2" color="text.secondary">
                     Pickup Long: {request.pickup_long}
                   </Typography>
-                  <Typography variant="body1" sx={{ mt: 1, fontWeight: "bold" }}>
+                  <Typography
+                    variant="body1"
+                    sx={{ mt: 1, fontWeight: "bold" }}
+                  >
                     Fare: ${request.fare.toFixed(2)}
                   </Typography>
                   <Typography variant="body2" sx={{ mt: 1 }}>
@@ -189,7 +237,9 @@ const DriveDashboard = () => {
                   </Typography>
                   {!canAccept && (
                     <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-                      {activeRide ? "Complete your current ride first." : "Too far to accept this ride."}
+                      {activeRide
+                        ? "Complete your current ride first."
+                        : "Too far to accept this ride."}
                     </Typography>
                   )}
                   <Box display="flex" justifyContent="space-between" mt={2}>
@@ -209,8 +259,19 @@ const DriveDashboard = () => {
         })}
       </Grid>
       {activeRide && (
-        <Box sx={{ mt: 4, p: 2, border: "1px solid #ccc", borderRadius: 3, boxShadow: 2 }}>
-          <Typography variant="h5" sx={{ fontWeight: "bold", textAlign: "center" }}>
+        <Box
+          sx={{
+            mt: 4,
+            p: 2,
+            border: "1px solid #ccc",
+            borderRadius: 3,
+            boxShadow: 2,
+          }}
+        >
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: "bold", textAlign: "center" }}
+          >
             Active Ride
           </Typography>
           <Typography variant="body1" sx={{ mt: 1 }}>
@@ -234,7 +295,7 @@ const DriveDashboard = () => {
               width: "100%",
               bgcolor: "#e0e0e0",
               borderRadius: 2,
-              position: "relative"
+              position: "relative",
             }}
           >
             <div
@@ -252,7 +313,7 @@ const DriveDashboard = () => {
                   display: "flex",
                   justifyContent: "center",
                   alignItems: "center",
-                  backgroundColor: "rgba(255,255,255,0.7)"
+                  backgroundColor: "rgba(255,255,255,0.7)",
                 }}
               >
                 <Typography>Loading map...</Typography>

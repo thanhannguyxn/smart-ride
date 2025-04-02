@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Navbar from "./NavBar";
 import Footer from "./Footer";
 import { AuthProvider, useAuth } from "./AuthContext";
-import signalRService from "./service/signalR";
+import {startConnection} from "./service/signalR";
 
 // Import pages
 import Home from "./pages/Home";
@@ -27,7 +27,7 @@ const AppContent = () => {
   // Initialize the SignalR connection when the app loads
   useEffect(() => {
     if (auth.isAuthenticated) {
-      signalRService.initialize();
+      startConnection();
     }
   }, [auth.isAuthenticated]);
   

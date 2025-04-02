@@ -1,74 +1,31 @@
 import * as signalR from "@microsoft/signalr";
 
-class SignalRService {
-  constructor() {
-    this.connection = null;
-    this.listeners = {};
-  }
 
-  initialize() {
-    if (this.connection) return;
-    this.connection = new signalR.HubConnectionBuilder()
-      .withUrl("/ridehub")
-      .withAutomaticReconnect()
-      .build();
 
-    this.startConnection();
-  }
+const hubConnection = new signalR.HubConnectionBuilder()
+  .withUrl(" https://localhost:7122/Hubs/RideRequestHub") // Replace with your actual backend URL
+  .withAutomaticReconnect()
+  .build();
 
-  async startConnection() {
-    try {
-      await this.connection.start();
-      console.log("SignalR connection established");
-      
-      Object.keys(this.listeners).forEach(event => {
-        this.listeners[event].forEach(callback => {
-          this.connection.on(event, callback);
-        });
-      });
-    } catch (error) {
-      console.error("Error establishing SignalR connection:", error);
-      setTimeout(() => this.startConnection(), 5000);
-    }
+export const startConnection = async () => {
+  try {
+    await hubConnection.start();
+    console.log("Connected to SignalR Hub");
+  } catch (err) {
+    console.error("Error connecting to SignalR Hub", err);
+    setTimeout(startConnection, 5000); // Retry connection after 5 seconds
   }
+};
 
-  on(event, callback) {
-    if (!this.listeners[event]) {
-      this.listeners[event] = [];
+// Listening for "NewRideRequest" event
+export const listenForRideRequests = (callback) => {
+  hubConnection.on("NewRideRequest", (rideRequest) => {
+    console.log("New ride request received:", rideRequest);
+    if (callback) {
+      callback(rideRequest);
     }
-    this.listeners[event].push(callback);
-    
-    if (this.connection) {
-      this.connection.on(event, callback);
-    }
-  }
+  });
+};
 
-  off(event, callback) {
-    if (this.listeners[event]) {
-      this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
-      
-      if (this.connection) {
-        this.connection.off(event, callback);
-      }
-    }
-  }
 
-  async invoke(method, ...args) {
-    if (!this.connection || this.connection.state !== signalR.HubConnectionState.Connected) {
-      console.error("Cannot invoke method. Connection not established.");
-      return null;
-    }
-    
-    try {
-      return await this.connection.invoke(method, ...args);
-    } catch (error) {
-      console.error(`Error invoking ${method}:`, error);
-      return null;
-    }
-  }
-  get state() {
-    return this.connection ? this.connection.state : null;
-  }
-}
-const signalRService = new SignalRService();
-export default signalRService;
+export default { hubConnection, startConnection };
