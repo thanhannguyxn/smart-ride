@@ -62,7 +62,7 @@ const SignUp = () => {
           email: form.email,
           license_number: form.licenseNumber,
           vehicle_details: form.vehicleDetails,
-          active_status: true,
+          isAvailable: true,
         };
 
         const driverResponse = await fetch("https://localhost:7122/api/Registration/DriverRegistration", {
