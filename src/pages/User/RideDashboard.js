@@ -7,10 +7,11 @@ import {
 } from "@mui/material";
 import { LocationOn } from "@mui/icons-material";
 import { useState, useEffect, useRef } from "react";
-import { fetchMapKey, createRideRequest } from "../../service";
+import { fetchMapKey, createRideRequest} from "../../service";
 import { getUserLocation } from "../../helper";
 import { handleSeePrices } from "../../helper";
 import { handleClearRoute } from "../../service/route";
+import { listenForRideCreated } from "../../service/signalR";
 
 export default function RideDashboard() {
   const [subscriptionKey, setSubscriptionKey] = useState(null);
@@ -23,18 +24,52 @@ export default function RideDashboard() {
   const [isConfirm, setIsConfirm] = useState(false);
   const [rideRequested, setRideRequested] = useState(false);
   const [rideStatus, setRideStatus] = useState("pending");
-  const [driverInfo, setDriverInfo] = useState(null);
+  const [currentLocation, setCurrentLocation] = useState({
+      lat: null,
+      long: null,
+    });
 
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const datasourceRef = useRef(null);
 
   useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCurrentLocation({
+          lat: position.coords.latitude,
+          long: position.coords.longitude,
+        });
+      },
+      (error) => console.error("Error getting location", error)
+    );
     async function getKey() {
       const key = await fetchMapKey();
       if (key) setSubscriptionKey(key);
     }
     getKey();
+  }, []);
+
+  useEffect(() => {
+    listenForRideCreated((newRequest) => {
+      if (newRequest.status === "ACCEPTED") {
+        setRideStatus("accepted");
+        // handleClearRoutef();
+        // load3routes(
+        //   currentLocation.lat,
+        //   currentLocation.long,
+        //   newRequest.pickupLat,
+        //   newRequest.pickupLong,
+        //   newRequest.dropoffLat,
+        //   newRequest.dropoffLong,
+        //   mapInstance,
+        //   datasourceRef
+        // );
+      }
+      if (newRequest.status === "COMPLETED") {
+        setRideStatus("completed");
+      }
+    });
   }, []);
 
   const handleConfirmRide = async () => {
@@ -43,20 +78,11 @@ export default function RideDashboard() {
         pickupLat,
         pickupLon,
         dropoffLat,
-        dropoffLon
+        dropoffLon,
+        fare
       );
       if (response) {
         setRideRequested(true);
-        setRideStatus("pending");
-        setTimeout(() => {
-          setRideStatus("accepted");
-          setDriverInfo({
-            name: "John Driver",
-            rating: 4.8,
-            vehicle: "Tesla Model 3",
-            licensePlate: "ABC123",
-          });
-        }, 3000);
       }
     } catch (error) {
       console.error("Failed to create ride request", error);
@@ -65,18 +91,9 @@ export default function RideDashboard() {
 
   const handleClearRoutef = () => {
     if (datasourceRef.current) {
-    handleClearRoute(datasourceRef);
+      handleClearRoute(datasourceRef);
     }
   };
-
-  useEffect(() => {
-    if (rideStatus === "accepted") {
-      const interval = setInterval(() => {
-        setRideStatus("completed");
-        clearInterval(interval);
-      }, 10000);
-    }
-  }, [rideStatus]);
 
   useEffect(() => {
     if (subscriptionKey && mapRef.current && !mapInstance.current) {
@@ -247,12 +264,6 @@ export default function RideDashboard() {
               <Typography variant="h6" gutterBottom>
                 Enjoy your ride!
               </Typography>
-              <Box p={2} bgcolor="#f5f5f5" borderRadius={2} mb={2}>
-                <Typography variant="body1" fontWeight="bold">
-                  {driverInfo.name} • ⭐ {driverInfo.rating}
-                </Typography>
-                <Typography variant="body2">{driverInfo.vehicle}</Typography>
-              </Box>
               <Typography variant="body1">
                 You're on your way to your destination
               </Typography>
@@ -302,6 +313,7 @@ export default function RideDashboard() {
                     setPickupLon("");
                     setDropoffLat("");
                     setDropoffLon("");
+                    setRideStatus("");
                   }}
                 >
                   Book Another Ride
@@ -353,7 +365,6 @@ export default function RideDashboard() {
       >
         <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
       </Box>
-      <Button onClick={handleClearRoutef}>Clean</Button>
     </Box>
   );
 }

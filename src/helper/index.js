@@ -63,6 +63,49 @@ export const handleSeePrices = async (
     const routeLine = new window.atlas.data.LineString(routeCoordinates);
     datasourceRef.current.clear();
     datasourceRef.current.add(new window.atlas.data.Feature(routeLine));
+
+    // Add pickup location marker
+    datasourceRef.current.add(
+      new window.atlas.data.Feature(
+        new window.atlas.data.Point(startPosition),
+        {
+          title: "Pickup Location",
+          iconImage: "pin-red",
+        }
+      )
+    );
+
+    datasourceRef.current.add(
+      new window.atlas.data.Feature(
+        new window.atlas.data.Point(endPosition),
+        {
+          title: "Dropoff Location",
+          iconImage: "pin-red",
+        }
+      )
+    );
+
+    // Ensure the symbol layer is added to the map
+    if (!mapInstance.current.layers.getLayerById("symbolLayer")) {
+      mapInstance.current.layers.add(
+        new window.atlas.layer.SymbolLayer(datasourceRef.current, null, {
+          iconOptions: {
+            image: ["get", "iconImage"],
+            allowOverlap: true,
+            ignorePlacement: true,
+          },
+          textOptions: {
+            textField: ["get", "title"],
+            offset: [0, 1],
+          },
+          filter: [
+            "any",
+            ["==", ["geometry-type"], "Point"],
+            ["==", ["geometry-type"], "MultiPoint"],
+          ],
+        })
+      );
+    }
   }
 };
 

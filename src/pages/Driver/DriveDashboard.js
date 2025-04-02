@@ -9,36 +9,11 @@ import {
   Box,
 } from "@mui/material";
 import { haversineDistance } from "../../helper";
-import { fetchMapKey } from "../../service";
-import {listenForRideRequests } from "../../service/signalR";
+import { fetchMapKey, updateRideRequest } from "../../service";
+import { listenForRideRequests } from "../../service/signalR";
 import { load3routes } from "../../service/route";
 
-const fakeRideRequests = [
-  {
-    request_id: 1,
-    pickup_lat: "21.041495",
-    pickup_long: "105.808494",
-    dropoff_lat: "21.032784",
-    dropoff_long: "105.681964",
-    fare: 15.75,
-  },
-  {
-    request_id: 2,
-    pickup_lat: "21.032784",
-    pickup_long: "105.681964",
-    dropoff_lat: "21.025452",
-    dropoff_long: "105.826726",
-    fare: 12.5,
-  },
-  {
-    request_id: 3,
-    pickup_lat: "21.039926",
-    pickup_long: "105.907940",
-    dropoff_lat: "21.045599",
-    dropoff_long: "105.912635",
-    fare: 18.0,
-  },
-];
+const fakeRideRequests = [];
 
 const DriveDashboard = () => {
   const [rideRequests, setRideRequests] = useState(fakeRideRequests);
@@ -69,24 +44,27 @@ const DriveDashboard = () => {
   useEffect(() => {
     listenForRideRequests((newRequest) => {
       console.log("New ride request received", newRequest);
-      
-      setRideRequests(prevRequests => {
+
+      setRideRequests((prevRequests) => {
         const isDuplicate = prevRequests.some(
-          request => request.request_id === newRequest.request_id
+          (request) => request.request_id === newRequest.requestId
         );
-        
+
         if (isDuplicate) {
           return prevRequests;
         }
-        
-        return [...prevRequests, {
-          request_id: newRequest.request_id,
-          pickup_lat: newRequest.pickupLat,
-          pickup_long: newRequest.pickupLong,
-          dropoff_lat: newRequest.dropoffLat,
-          dropoff_long: newRequest.dropoffLong,
-          fare: newRequest.fareAmount,
-        }];
+
+        return [
+          ...prevRequests,
+          {
+            request_id: newRequest.requestId,
+            pickup_lat: newRequest.pickupLat,
+            pickup_long: newRequest.pickupLong,
+            dropoff_lat: newRequest.dropoffLat,
+            dropoff_long: newRequest.dropoffLong,
+            fare: newRequest.fareAmount,
+          },
+        ];
       });
     });
   }, []);
@@ -179,17 +157,20 @@ const DriveDashboard = () => {
       setRideRequests((prev) =>
         prev.filter((r) => r.request_id !== request.request_id)
       );
-
+      updateRideRequest(request.request_id, "ACCEPTED");
       mapInstance.current = null;
     }
   };
 
   const handleComplete = () => {
-    if (mapInstance.current) {
-      mapInstance.current.markers.clear();
-      mapInstance.current = null;
+    if (activeRide) {
+      updateRideRequest(activeRide.request_id, "COMPLETED");
+      if (mapInstance.current) {
+        mapInstance.current.markers.clear();
+        mapInstance.current = null;
+      }
+      setActiveRide(null);
     }
-    setActiveRide(null);
   };
 
   return (
@@ -324,7 +305,7 @@ const DriveDashboard = () => {
           <Button
             variant="contained"
             color="primary"
-            sx={{ mt: 2 }}
+            sx={{ mt: 2, ml: "auto", display: "block" }}
             onClick={handleComplete}
           >
             Complete Ride

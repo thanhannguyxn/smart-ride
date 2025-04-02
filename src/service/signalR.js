@@ -27,5 +27,13 @@ export const listenForRideRequests = (callback) => {
   });
 };
 
+export const listenForRideCreated = (callback) => {
+  hubConnection.on("RideRequestUpdated", (rideRequest) => {
+    console.log("RideCreated:", rideRequest);
+    if (callback) {
+      callback(rideRequest);
+    }
+  });
+};
 
 export default { hubConnection, startConnection };
