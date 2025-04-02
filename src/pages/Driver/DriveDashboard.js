@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, Typography, Button, Grid, Avatar, Box } from "@mui/material";
 import { haversineDistance } from "../../helper";
-import { fetchMapKey, fetchRoute } from "../../service";
+import { fetchMapKey } from "../../service";
+import signalRService from "../../service/signalR";
+import { load3routes } from "../../service/route";
 
 const fakeRideRequests = [
   {
@@ -22,8 +24,8 @@ const fakeRideRequests = [
   },
   {
     request_id: 3,
-    pickup_lat: "21.025452",
-    pickup_long: "105.826726",
+    pickup_lat: "21.039926",
+    pickup_long: "105.907940",
     dropoff_lat: "21.045599",
     dropoff_long: "105.912635",
     fare: 18.00,
@@ -51,6 +53,23 @@ const DriveDashboard = () => {
       },
       (error) => console.error("Error getting location", error)
     );
+  }, []);
+
+  useEffect(() => {
+    const handleRideRequest = (request) => {
+      console.log("New ride request received:", request);
+      setRideRequests(prevRequests => {
+        const exists = prevRequests.some(r => r.request_id === request.request_id);
+        if (!exists) {
+          return [...prevRequests, request];
+        }
+        return prevRequests;
+      });
+    };
+    signalRService.on("RideRequest", handleRideRequest);
+    return () => {
+      signalRService.off("RideRequest", handleRideRequest);
+    };
   }, []);
 
   useEffect(() => {
@@ -108,118 +127,13 @@ const DriveDashboard = () => {
         mapInstance.current.events.add("ready", () => {
           datasourceRef.current = new window.atlas.source.DataSource();
           mapInstance.current.sources.add(datasourceRef.current);
-          loadRoutes();
+          load3routes(currentLocation.lat, currentLocation.long, activeRide.pickup_lat, activeRide.pickup_long, activeRide.dropoff_lat, activeRide.dropoff_long, mapInstance, datasourceRef);
         });
       } catch (error) {
         console.error("Error initializing map:", error);
       }
     }
   }, [subscriptionKey, isMapLoaded, activeRide]);
-
-  const loadRoutes = async () => {
-    const driverLat = currentLocation.lat;
-    const driverLong = currentLocation.long;
-    const pickup_lat = activeRide.pickup_lat;
-    const pickup_long = activeRide.pickup_long;
-    const dropoff_lat = activeRide.dropoff_lat;
-    const dropoff_long = activeRide.dropoff_long;
-
-    const routeData1 = await fetchRoute(
-      driverLat,
-      driverLong,
-      pickup_lat,
-      pickup_long
-    );
-
-    const routeData2 = await fetchRoute(
-      pickup_lat,
-      pickup_long,
-      dropoff_lat,
-      dropoff_long
-    );
-
-    if (!routeData1 || !routeData2) {
-      console.error("Failed to fetch route data");
-      return;
-    }
-
-    const route1 = routeData1.routes[0];
-    const route2 = routeData2.routes[0];
-
-    const routeCoordinates1 = route1.legs.flatMap((leg) =>
-      leg.points.map((point) => [point.longitude, point.latitude])
-    );
-
-    const routeCoordinates2 = route2.legs.flatMap((leg) =>
-      leg.points.map((point) => [point.longitude, point.latitude])
-    );
-
-    if (mapInstance.current && datasourceRef.current) {
-      const routeLine1 = new window.atlas.data.LineString(routeCoordinates1);
-      const routeLine2 = new window.atlas.data.LineString(routeCoordinates2);
-      datasourceRef.current.clear();
-      datasourceRef.current.add(new window.atlas.data.Feature(routeLine1));
-      datasourceRef.current.add(new window.atlas.data.Feature(routeLine2));
-
-      if (!mapInstance.current.layers.getLayerById('routeLayer')) {
-        mapInstance.current.layers.add(
-          new window.atlas.layer.LineLayer(
-            datasourceRef.current,
-            'routeLayer',
-            {
-              strokeColor: ['get', 'color'],
-              strokeWidth: 2
-            }
-          )
-        );
-      }
-
-      datasourceRef.current.add(new window.atlas.data.Feature(
-        new window.atlas.data.Point([parseFloat(driverLong), parseFloat(driverLat)]),
-        {
-          title: 'Driver Location',
-          iconImage: "pin-blue",
-        }
-      ));
-
-      datasourceRef.current.add(new window.atlas.data.Feature(
-        new window.atlas.data.Point([parseFloat(pickup_long), parseFloat(pickup_lat)]),
-        {
-          title: 'Pickup Location',
-          iconImage: "pin-red",
-        }
-      ));
-
-      datasourceRef.current.add(new window.atlas.data.Feature(
-        new window.atlas.data.Point([parseFloat(dropoff_long), parseFloat(dropoff_lat)]),
-        {
-          title: 'Dropoff Location',
-          iconImage: "pin-red",
-        }
-      ));
-
-      if (!mapInstance.current.layers.getLayerById('symbolLayer')) {
-        mapInstance.current.layers.add(
-          new window.atlas.layer.SymbolLayer(datasourceRef.current, null, {
-            iconOptions: {
-              image: ["get", "iconImage"],
-              allowOverlap: true,
-              ignorePlacement: true,
-            },
-            textOptions: {
-              textField: ["get", "title"],
-              offset: [0, 1],
-            },
-            filter: [
-              "any",
-              ["==", ["geometry-type"], "Point"],
-              ["==", ["geometry-type"], "MultiPoint"],
-            ],
-          })
-        );
-      }
-    }
-  }
 
   const handleAccept = (request) => {
     if (!activeRide) {

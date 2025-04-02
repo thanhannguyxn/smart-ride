@@ -1,4 +1,4 @@
-const API_URL = "https://localhost:7156/api"; // Adjust as needed
+const API_URL = "https://localhost:7122/api"; // Adjust as needed
  
 // Function to fetch Azure Maps API key
 export async function fetchMapKey() {
